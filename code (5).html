@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Typewriter Code Box with Sound & Copy Effect</title>
+    <style>
+        body {
+            font-family: "Courier New", monospace;
+            background-color: #1e1e1e;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .code-container {
+            position: relative;
+            background: #282c34;
+            padding: 20px;
+            border-radius: 8px;
+            overflow: hidden;
+            width: 500px;
+            min-height: 200px;
+        }
+
+        /* Animated Border */
+        .code-container::before, .code-container::after {
+            content: "";
+            position: absolute;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, cyan, magenta, lime, yellow);
+            animation: border-glow 3s linear infinite;
+        }
+
+        .code-container::before { top: 0; left: 0; }
+        .code-container::after { bottom: 0; right: 0; }
+
+        @keyframes border-glow {
+            0% { filter: hue-rotate(0deg); }
+            100% { filter: hue-rotate(360deg); }
+        }
+
+        /* Typewriter Effect */
+        .code {
+            font-size: 14px;
+            color: #f8f8f2;
+            font-family: monospace;
+            white-space: pre-wrap;
+            overflow: hidden;
+            display: inline-block;
+            border-right: 2px solid cyan;
+            animation: blink 0.6s infinite;
+        }
+
+        @keyframes blink {
+            50% { border-color: transparent; }
+        }
+
+        /* Buttons */
+        .btn-group {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            background: cyan;
+            color: black;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            font-size: 12px;
+            border-radius: 4px;
+            transition: 0.3s;
+        }
+
+        .btn:hover { background: lime; }
+
+        /* Mute Button */
+        .mute-btn {
+            background: transparent;
+            font-size: 16px;
+            border: none;
+            cursor: pointer;
+            color: white;
+        }
+
+        /* Copy Countdown */
+        .loader {
+            display: none;
+            font-size: 12px;
+            font-weight: bold;
+            color: yellow;
+        }
+
+        /* Custom Alert */
+        .custom-alert {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            background: rgba(0, 255, 127, 0.9);
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            color: black;
+            animation: fadeInOut 4s ease-in-out;
+        }
+
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(20px); }
+            20% { opacity: 1; transform: translateY(0); }
+            80% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(20px); }
+        }
+
+        /* Language Selector */
+        .language-selector {
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+     /* Language Selector with Animation */
+        .language-selector {
+            margin-bottom: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        select {
+            background: black;
+            color: lime;
+            border: 2px solid cyan;
+            padding: 5px 10px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: 0.3s ease-in-out;
+            border-radius: 5px;
+        }
+
+        select:hover { transform: scale(1.1); }
+
+    </style>
+</head>
+<body>
+
+    <label class="language-selector">
+        Select Language:
+        <select id="languageSelect">
+            <option value="javascript">JavaScript</option>
+            <option value="python">Python</option>
+            <option value="html">HTML</option>
+            <option value="java">Java</option>
+        </select>
+    </label>
+
+    <div class="code-container">
+        <div class="btn-group">
+            <button class="btn copy-btn">Copy</button>
+            <span class="loader"></span>
+            <button class="mute-btn">🔊</button>
+        </div>
+        <pre class="code"></pre>
+    </div>
+
+    <div class="custom-alert">✅ Your code has been copied successfully!</div>
+
+    <audio id="typeSound" src="https://www.fesliyanstudios.com/play-mp3/387"></audio>
+    <audio id="copySound" src="https://www.fesliyanstudios.com/play-mp3/275"></audio>
+
+    <script>
+        const codeSamples = {
+            javascript: `console.log("Hello, World!");\nfunction greet(name) {\n    return \`Hello, \${name}!\`;\n}\nconsole.log(greet("User"));`,
+            python: `print("Hello, World!")\ndef greet(name):\n    return f"Hello, {name}!"\nprint(greet("User"))`,
+            html: `<!DOCTYPE html>\n<html>\n<head>\n    <title>My Page</title>\n</head>\n<body>\n    <h1>Hello, World!</h1>\n</body>\n</html>`,
+            java: `public class Main {\n    public static void main(String[] args) {\n        System.out.println("Hello, World!");\n    }\n}`
+        };
+
+        let index = 0;
+        let codeElement = document.querySelector(".code");
+        let muteBtn = document.querySelector(".mute-btn");
+        let isMuted = false;
+        let currentLang = "javascript";
+        let currentCode = codeSamples[currentLang];
+
+        document.getElementById("languageSelect").addEventListener("change", function() {
+            currentLang = this.value;
+            currentCode = codeSamples[currentLang];
+            resetTypingEffect();
+        });
+
+        muteBtn.addEventListener("click", function() {
+            isMuted = !isMuted;
+            muteBtn.innerText = isMuted ? "🔇" : "🔊";
+        });
+
+        function typeWriter() {
+            if (index < currentCode.length) {
+                if (!isMuted && currentCode[index] !== " ") document.getElementById("typeSound").play();
+                codeElement.innerHTML += currentCode[index];
+                index++;
+                setTimeout(typeWriter, 50);
+            }
+        }
+
+        function resetTypingEffect() {
+            codeElement.innerHTML = "";
+            index = 0;
+            typeWriter();
+        }
+
+        resetTypingEffect();
+
+        document.querySelector(".copy-btn").addEventListener("click", function() {
+            let loader = document.querySelector(".loader");
+            loader.style.display = "block";
+            let timeLeft = 5;
+
+            function countdown() {
+                loader.innerText = `Copying in ${timeLeft}s...`;
+                if (timeLeft === 0) {
+                    loader.style.display = "none";
+                    navigator.clipboard.writeText(currentCode).then(() => {
+                        document.getElementById("copySound").play();
+                        showCustomAlert();
+                    });
+                } else {
+                    timeLeft--;
+                    setTimeout(countdown, 1000);
+                }
+            }
+            countdown();
+        });
+
+        function showCustomAlert() {
+            let alertBox = document.querySelector(".custom-alert");
+            alertBox.style.display = "block";
+            setTimeout(() => alertBox.style.display = "none", 4000);
+        }
+
+    </script>
+
+</body>
+</html>
